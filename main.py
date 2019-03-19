@@ -324,20 +324,20 @@ def main():
     nonzero_elements = np.count_nonzero(np.count_nonzero(embedding_matrix, axis=1))
     print("non_zero_elements", nonzero_elements / vocab_size)
 
-    # embedding_layer = tf.keras.layers.Embedding(
-        # len(tokenizer.word_index) + 1,
-        # EMBEDDING_DIM,
-        # weights=[embedding_matrix],
-        # input_length=max_length,
-        # trainable=False,
-    # )
-
     embedding_layer = tf.keras.layers.Embedding(
-        TOP_WORDS,
+        len(tokenizer.word_index) + 1,
         EMBEDDING_DIM,
-        # weights=[embedding_matrix],
+        weights=[embedding_matrix],
         input_length=max_length,
+        trainable=False,
     )
+
+    # embedding_layer = tf.keras.layers.Embedding(
+        # TOP_WORDS,
+        # EMBEDDING_DIM,
+        # # weights=[embedding_matrix],
+        # input_length=max_length,
+    # )
 
     # Create the model
     # model = basic_model(embedding_layer)
