@@ -51,15 +51,17 @@ for line in allData:
     newsSentiment.write(output)
 
 averageSentimentPerDate = open("averageSentimentPerDate.txt", "w")
-averageSentimentPerDate.write("date, textBlobSentimentAverage, vaderSentimentAverage")
+averageSentimentPerDate.write('"",Date,textBlobSentimentAverage,vaderSentimentAverage\n')
+index = 0
 for date in textblobTracker:
     textBlobPolarityList = textblobTracker[date]
     textBlobAve = sum(textBlobPolarityList) / len(textBlobPolarityList)
     vaderPolarityList = vaderTracker[date]
     vaderAve = sum(vaderPolarityList) / len(vaderPolarityList)
     
-    seperator = ", "
-    output = seperator.join([date, str(textBlobAve), str(vaderAve)]) + "\n"
+    seperator = ","
+    output = '"' + str(index) + '",' + seperator.join([date, str(textBlobAve), str(vaderAve)]) + "\n"
+    print(output)
     averageSentimentPerDate.write(output)
-
+    index += 1
 
