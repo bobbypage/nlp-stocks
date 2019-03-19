@@ -5,12 +5,15 @@ import numpy as np
 import nltk
 import string
 from nltk.corpus import stopwords
+import re
+from string import punctuation
 
 print("Using TF version", tf.__version__)
 
 import pdb
 
 STOP_WORDS = set(stopwords.words('english'))
+TOP_WORDS=10000
 EMBEDDING_DIM = 100 # Glove embedding size
 
 contradictions = {
@@ -145,29 +148,36 @@ def replace_contradictions(word):
     else:
         return word
 
-def clean_news(sentence):
-    new_sentence = []
-    tokens = nltk.word_tokenize(sentence)
+def clean_news(text):
+    # new_sentence = []
+    # tokens = nltk.word_tokenize(sentence)
 
-    # Lowercase everything
-    tokens = [w.lower() for w in tokens]
+    # # Lowercase everything
+    # tokens = [w.lower() for w in tokens]
 
-    words = [replace_contradictions(w) for w in tokens]
+    # words = [replace_contradictions(w) for w in tokens]
 
-    # Remove punctuation from each word
-    table = str.maketrans('', '', string.punctuation)
-    stripped = [w.translate(table) for w in tokens]
+    # # Remove punctuation from each word
+    # table = str.maketrans('', '', string.punctuation)
+    # stripped = [w.translate(table) for w in tokens]
 
-    # Remove remaining tokens that are not alphabetic
-    words = [word for word in stripped if word.isalpha()]
+    # # Remove remaining tokens that are not alphabetic
+    # words = [word for word in stripped if word.isalpha()]
 
-    # Remove stop words
-    words = [w for w in words if not w in STOP_WORDS]
+    # # Remove stop words
+    # words = [w for w in words if not w in STOP_WORDS]
 
-    # Remove words with less than 1 character
-    words = [w for w in words if len(w) > 1]
+    # # Remove words with less than 1 character
+    # words = [w for w in words if len(w) > 1]
 
-    return words
+    # return words
+    process_text=text.replace('\n','').replace('"b','').replace("'b",'')
+    for punc in list(punctuation):
+            process_text=process_text.replace(punc,'').lower()
+    # process_text = process_text.strip(" ")
+    # Remove extra spaces
+    process_text=re.sub(' +',' ',process_text)
+    return process_text
 
 
 
@@ -182,11 +192,11 @@ def loadDataCombinedColumns(DATA_URL):
     data_X = data["combined_news"]
     # data_X = data.iloc[:,1:26].apply(lambda headline:cleanString(' '.join(headline)), axis=1)
 
-    test_X = data_X["2015-01-02":"2016-07-01"]
-    train_X = data_X["2008-08-08":"2014-12-31"]
+    test_x = data_X["2015-01-02":"2016-07-01"]
     test_y = data_y["2015-01-02":"2016-07-01"]
+    train_x = data_X["2008-08-08":"2014-12-31"]
     train_y = data_y["2008-08-08":"2014-12-31"]
-    return (train_X, train_y, test_X, test_y)
+    return (train_x, train_y, test_x, test_y)
 
 
 def mergeNews(x_df, y_df):
@@ -267,8 +277,7 @@ def lstm_model(embedding_layer, vocab_size):
     # model.add(tf.keras.layers.Dropout(0.25))
     # model.add(tf.keras.layers.SimpleRNN(100,return_sequences=True))
     # model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='sigmoid')))
-    model.add(tf.keras.layers.LSTM(50, dropout=0.2, recurrent_dropout=0.2, return_sequences=True))
-    model.add(tf.keras.layers.LSTM(50, dropout=0.2, recurrent_dropout=0.2))
+    model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2))
     model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 
     return model
@@ -289,9 +298,11 @@ def main():
     print("Max length", max_length)
     print("Number of news training examples", len(cleaned_train_x))
 
+    max_length = 400
+
 
     # initialize the tokenizer
-    tokenizer = tf.keras.preprocessing.text.Tokenizer()
+    tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=TOP_WORDS)
 
     tokenizer.fit_on_texts(cleaned_train_x)
     vocab_size = len(tokenizer.word_index) + 1
@@ -313,12 +324,19 @@ def main():
     nonzero_elements = np.count_nonzero(np.count_nonzero(embedding_matrix, axis=1))
     print("non_zero_elements", nonzero_elements / vocab_size)
 
+    # embedding_layer = tf.keras.layers.Embedding(
+        # len(tokenizer.word_index) + 1,
+        # EMBEDDING_DIM,
+        # weights=[embedding_matrix],
+        # input_length=max_length,
+        # trainable=False,
+    # )
+
     embedding_layer = tf.keras.layers.Embedding(
-        len(tokenizer.word_index) + 1,
+        TOP_WORDS,
         EMBEDDING_DIM,
-        weights=[embedding_matrix],
+        # weights=[embedding_matrix],
         input_length=max_length,
-        trainable=False,
     )
 
     # Create the model
