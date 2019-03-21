@@ -6,7 +6,10 @@ import nltk
 import string
 from nltk.corpus import stopwords
 import re
+import time
 from string import punctuation
+
+from tensorflow.keras.callbacks import TensorBoard
 
 print("Using TF version", tf.__version__)
 
@@ -254,7 +257,36 @@ def basic_model(embedding_layer, vocab_size):
     model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
     return model
 
-def lstm_model(embedding_layer, vocab_size):
+def lstm_model_2_layers(embedding_layer, vocab_size):
+    model = tf.keras.Sequential()
+    hidden_size=50
+
+    model.add(embedding_layer)
+    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
+    # model.add(tf.keras.layers.Dropout(0.2))
+
+    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
+    # model.add(tf.keras.layers.Dropout(0.2))
+
+    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
+    # model.add(tf.keras.layers.Dropout(0.2))
+
+    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
+    # model.add(tf.keras.layers.Dropout(0.2))
+
+    # model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
+
+    # model.add(Embedding(n_vocab,100))
+    # model.add(tf.keras.layers.Dropout(0.25))
+    # model.add(tf.keras.layers.SimpleRNN(100,return_sequences=True))
+    # model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='sigmoid')))
+    model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2, return_sequences=True))
+    model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2))
+    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+
+    return model
+
+def lstm_model_1_layers(embedding_layer, vocab_size):
     model = tf.keras.Sequential()
     hidden_size=50
 
@@ -340,8 +372,9 @@ def main():
     # )
 
     # Create the model
-    # model = basic_model(embedding_layer)
-    model = lstm_model(embedding_layer, vocab_size)
+    # model = basic_model(embedding_layer, vocab_size)
+    # model = lstm_model_2_layers(embedding_layer, vocab_size)
+    model = lstm_model_1_layers(embedding_layer, vocab_size)
     model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
     model.summary()
 
@@ -356,6 +389,10 @@ def main():
 
     print(test_y_np)
 
+    # tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
+    tensorboard = TensorBoard(log_dir='./logs/single_lstm', histogram_freq=0,
+                          write_graph=True, write_images=False)
+
     history = model.fit(
         train_x_np,
         train_y_np,
@@ -363,6 +400,7 @@ def main():
         verbose=1,
         validation_data=(test_x_np, test_y_np),
         batch_size=32,
+        callbacks=[tensorboard]
     )
     loss, accuracy = model.evaluate(train_x_np, train_y_np, verbose=False)
     print("Training Accuracy: {:.4f}".format(accuracy))
