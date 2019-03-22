@@ -13,146 +13,13 @@ from tensorflow.keras.callbacks import TensorBoard
 
 print("Using TF version", tf.__version__)
 
-import pdb
+STOP_WORDS = set(stopwords.words("english"))
+TOP_WORDS = 10000
+EMBEDDING_DIM = 100  # Glove embedding size
+MAX_LENGTH = 400
 
-STOP_WORDS = set(stopwords.words('english'))
-TOP_WORDS=10000
-EMBEDDING_DIM = 100 # Glove embedding size
-
-contradictions = {
-  "ain't": "am not",
-  "aren't": "are not",
-  "can't": "cannot",
-  "can't've": "cannot have",
-  "'cause": "because",
-  "could've": "could have",
-  "couldn't": "could not",
-  "couldn't've": "could not have",
-  "didn't": "did not",
-  "doesn't": "does not",
-  "don't": "do not",
-  "hadn't": "had not",
-  "hadn't've": "had not have",
-  "hasn't": "has not",
-  "haven't": "have not",
-  "he'd": "he would",
-  "he'd've": "he would have",
-  "he'll": "he will",
-  "he'll've": "he will have",
-  "he's": "he is",
-  "how'd": "how did",
-  "how'd'y": "how do you",
-  "how'll": "how will",
-  "how's": "how is",
-  "I'd": "I would",
-  "I'd've": "I would have",
-  "I'll": "I will",
-  "I'll've": "I will have",
-  "I'm": "I am",
-  "I've": "I have",
-  "isn't": "is not",
-  "it'd": "it had",
-  "it'd've": "it would have",
-  "it'll": "it will",
-  "it'll've": "it will have",
-  "it's": "it is",
-  "let's": "let us",
-  "ma'am": "madam",
-  "mayn't": "may not",
-  "might've": "might have",
-  "mightn't": "might not",
-  "mightn't've": "might not have",
-  "must've": "must have",
-  "mustn't": "must not",
-  "mustn't've": "must not have",
-  "needn't": "need not",
-  "needn't've": "need not have",
-  "o'clock": "of the clock",
-  "oughtn't": "ought not",
-  "oughtn't've": "ought not have",
-  "shan't": "shall not",
-  "sha'n't": "shall not",
-  "shan't've": "shall not have",
-  "she'd": "she would",
-  "she'd've": "she would have",
-  "she'll": "she will",
-  "she'll've": "she will have",
-  "she's": "she is",
-  "should've": "should have",
-  "shouldn't": "should not",
-  "shouldn't've": "should not have",
-  "so've": "so have",
-  "so's": "so is",
-  "that'd": "that would",
-  "that'd've": "that would have",
-  "that's": "that is",
-  "there'd": "there had",
-  "there'd've": "there would have",
-  "there's": "there is",
-  "they'd": "they would",
-  "they'd've": "they would have",
-  "they'll": "they will",
-  "they'll've": "they will have",
-  "they're": "they are",
-  "they've": "they have",
-  "to've": "to have",
-  "wasn't": "was not",
-  "we'd": "we had",
-  "we'd've": "we would have",
-  "we'll": "we will",
-  "we'll've": "we will have",
-  "we're": "we are",
-  "we've": "we have",
-  "weren't": "were not",
-  "what'll": "what will",
-  "what'll've": "what will have",
-  "what're": "what are",
-  "what's": "what is",
-  "what've": "what have",
-  "when's": "when is",
-  "when've": "when have",
-  "where'd": "where did",
-  "where's": "where is",
-  "where've": "where have",
-  "who'll": "who will",
-  "who'll've": "who will have",
-  "who's": "who is",
-  "who've": "who have",
-  "why's": "why is",
-  "why've": "why have",
-  "will've": "will have",
-  "won't": "will not",
-  "won't've": "will not have",
-  "would've": "would have",
-  "wouldn't": "would not",
-  "wouldn't've": "would not have",
-  "y'all": "you all",
-  "y'alls": "you alls",
-  "y'all'd": "you all would",
-  "y'all'd've": "you all would have",
-  "y'all're": "you all are",
-  "y'all've": "you all have",
-  "you'd": "you had",
-  "you'd've": "you would have",
-  "you'll": "you you will",
-  "you'll've": "you you will have",
-  "you're": "you are",
-  "you've": "you have"
-}
-
-
-def cleanString(sentence):
-    return sentence
-
-
-def replace_contradictions(word):
-    if word in contradictions:
-        return contradictions[word]
-    else:
-        return word
 
 def clean_news(text):
-    # new_sentence = []
     # tokens = nltk.word_tokenize(sentence)
 
     # # Lowercase everything
@@ -174,51 +41,42 @@ def clean_news(text):
     # words = [w for w in words if len(w) > 1]
 
     # return words
-    process_text=text.replace('\n','').replace('"b','').replace("'b",'')
+    cleaned_text = text.replace("\n", "").replace('"b', "").replace("'b", "")
     for punc in list(punctuation):
-            process_text=process_text.replace(punc,'').lower()
-    # process_text = process_text.strip(" ")
-    # Remove extra spaces
-    process_text=re.sub(' +',' ',process_text)
-    return process_text
-
+        cleaned_text = cleaned_text.replace(punc, "").lower()
+    cleaned_text = re.sub(" +", " ", cleaned_text)
+    return cleaned_text
 
 
 def loadDataCombinedColumns(DATA_URL):
     data = pd.read_csv(
         DATA_URL, parse_dates=True, index_col=0, verbose=True, keep_default_na=False
     )
-    data["combined_news"] = data.filter(regex=("Top.*")).apply(lambda x: ''.join(str(x.values)), axis=1)
+    data["combined_news"] = data.filter(regex=("Top.*")).apply(
+        lambda x: "".join(str(x.values)), axis=1
+    )
     data["combined_news"] = data["combined_news"].apply(clean_news)
     data_y = data["Label"]
-    # data_X = data.iloc[:, 1:26]
-    data_X = data["combined_news"]
-    # data_X = data.iloc[:,1:26].apply(lambda headline:cleanString(' '.join(headline)), axis=1)
-
-    test_x = data_X["2015-01-02":"2016-07-01"]
+    data_x = data["combined_news"]
+    test_x = data_x["2015-01-02":"2016-07-01"]
     test_y = data_y["2015-01-02":"2016-07-01"]
-    train_x = data_X["2008-08-08":"2014-12-31"]
+    train_x = data_x["2008-08-08":"2014-12-31"]
     train_y = data_y["2008-08-08":"2014-12-31"]
+
     return (train_x, train_y, test_x, test_y)
 
 
 def mergeNews(x_df, y_df):
     new_x = []
     new_y = []
-    # for date_idx in range(y_df.size):
-        # y_label = y_df.iloc[date_idx]
-        # news = x_df.iloc[date_idx]
-        # for news_idx in news:
-            # new_x.extend(news.values)
-            # new_y.extend([y_label] * len(news.values))
     for date_idx in range(y_df.size):
         y_label = y_df.iloc[date_idx]
         x_news = x_df.iloc[date_idx]
-
         new_x.append(x_news)
         new_y.append(y_label)
 
     return new_x, new_y
+
 
 def encode_and_pad_data(data, tokenizer, max_length):
     # integer encode the text data
@@ -235,7 +93,6 @@ def encode_and_pad_data(data, tokenizer, max_length):
 
 
 def create_glove_embeddings():
-
     # Load the GLOVE embeddings
     embeddings_index = {}
     with open("glove/glove.6B.100d.txt", encoding="utf-8") as f:
@@ -257,81 +114,45 @@ def basic_model(embedding_layer, vocab_size):
     model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
     return model
 
+
 def lstm_model_2_layers(embedding_layer, vocab_size):
     model = tf.keras.Sequential()
-    hidden_size=50
 
     model.add(embedding_layer)
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
-
-    # model.add(Embedding(n_vocab,100))
-    # model.add(tf.keras.layers.Dropout(0.25))
-    # model.add(tf.keras.layers.SimpleRNN(100,return_sequences=True))
-    # model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='sigmoid')))
-    model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2, return_sequences=True))
+    model.add(
+        tf.keras.layers.LSTM(
+            128, dropout=0.2, recurrent_dropout=0.2, return_sequences=True
+        )
+    )
     model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2))
-    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 
     return model
 
+
 def lstm_model_1_layers(embedding_layer, vocab_size):
     model = tf.keras.Sequential()
-    hidden_size=50
 
     model.add(embedding_layer)
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.LSTM(hidden_size, return_sequences=True))
-    # model.add(tf.keras.layers.Dropout(0.2))
-
-    # model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
-
-    # model.add(Embedding(n_vocab,100))
-    # model.add(tf.keras.layers.Dropout(0.25))
-    # model.add(tf.keras.layers.SimpleRNN(100,return_sequences=True))
-    # model.add(tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(1, activation='sigmoid')))
     model.add(tf.keras.layers.LSTM(128, dropout=0.2, recurrent_dropout=0.2))
-    model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+    model.add(tf.keras.layers.Dense(1, activation="sigmoid"))
 
     return model
 
 
 def main():
-
-    train_x, train_y, test_x, test_y = loadDataCombinedColumns("./stocknews/Combined_News_DJIA.csv")
+    train_x, train_y, test_x, test_y = loadDataCombinedColumns(
+        "./stocknews/Combined_News_DJIA.csv"
+    )
     cleaned_train_x, cleaned_train_y = mergeNews(train_x, train_y)
     cleaned_test_x, cleaned_test_y = mergeNews(test_x, test_y)
 
-    print("Length of data")
-    print(len(cleaned_train_x), len(cleaned_train_y))
-
+    print("Length of data", len(cleaned_train_x), len(cleaned_train_y))
 
     # get the longest new article length
-    max_length = len(max(cleaned_train_x, key=len))
-    print("Max length", max_length)
-    print("Number of news training examples", len(cleaned_train_x))
-
-    max_length = 400
-
+    # max_length = len(max(cleaned_train_x, key=len))
+    # print("Max length", max_length)
+    # print("Number of news training examples", len(cleaned_train_x))
 
     # initialize the tokenizer
     tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=TOP_WORDS)
@@ -339,8 +160,8 @@ def main():
     tokenizer.fit_on_texts(cleaned_train_x)
     vocab_size = len(tokenizer.word_index) + 1
 
-    train_x_encoded = encode_and_pad_data(cleaned_train_x, tokenizer, max_length)
-    test_x_encoded = encode_and_pad_data(cleaned_test_x, tokenizer, max_length)
+    train_x_encoded = encode_and_pad_data(cleaned_train_x, tokenizer, MAX_LENGTH)
+    test_x_encoded = encode_and_pad_data(cleaned_test_x, tokenizer, MAX_LENGTH)
 
     embeddings_index = create_glove_embeddings()
 
@@ -352,7 +173,6 @@ def main():
             # words not found in embedding index will be all-zeros.
             embedding_matrix[i] = embedding_vector
 
-
     nonzero_elements = np.count_nonzero(np.count_nonzero(embedding_matrix, axis=1))
     print("non_zero_elements", nonzero_elements / vocab_size)
 
@@ -360,16 +180,9 @@ def main():
         len(tokenizer.word_index) + 1,
         EMBEDDING_DIM,
         weights=[embedding_matrix],
-        input_length=max_length,
+        input_length=MAX_LENGTH,
         trainable=False,
     )
-
-    # embedding_layer = tf.keras.layers.Embedding(
-        # TOP_WORDS,
-        # EMBEDDING_DIM,
-        # # weights=[embedding_matrix],
-        # input_length=max_length,
-    # )
 
     # Create the model
     # model = basic_model(embedding_layer, vocab_size)
@@ -387,11 +200,12 @@ def main():
     print("Train_x_shape", train_x_np.shape)
     print("Train_y_shape", train_y_np.shape)
 
-    print(test_y_np)
-
-    # tensorboard = TensorBoard(log_dir="logs/{}".format(time()))
-    tensorboard = TensorBoard(log_dir='./logs/single_lstm', histogram_freq=0,
-                          write_graph=True, write_images=False)
+    tensorboard = TensorBoard(
+        log_dir="./tensorboard_logs",
+        histogram_freq=0,
+        write_graph=True,
+        write_images=False,
+    )
 
     history = model.fit(
         train_x_np,
@@ -400,13 +214,12 @@ def main():
         verbose=1,
         validation_data=(test_x_np, test_y_np),
         batch_size=32,
-        callbacks=[tensorboard]
+        callbacks=[tensorboard],
     )
     loss, accuracy = model.evaluate(train_x_np, train_y_np, verbose=False)
     print("Training Accuracy: {:.4f}".format(accuracy))
     loss, accuracy = model.evaluate(test_x_np, test_y_np, verbose=False)
     print("Testing Accuracy:  {:.4f}".format(accuracy))
-
 
 
 if __name__ == "__main__":
